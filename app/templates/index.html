@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Chat with Vertex AI Agent</title>
+</head>
+<body>
+  <h1>Chat with your Agent</h1>
+  <div>
+    <input id="query" type="text" placeholder="Type a message…" size="50"/>
+    <button id="send">Send</button>
+  </div>
+  <div id="chat" style="margin-top:1em;"></div>
+
+  <script>
+    const chatDiv = document.getElementById('chat');
+    document.getElementById('send').onclick = async () => {
+      const query = document.getElementById('query').value;
+      if (!query) return;
+      // display user message
+      const userMsg = document.createElement('p');
+      userMsg.textContent = 'You: ' + query;
+      chatDiv.appendChild(userMsg);
+
+      // send to backend
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({query})
+      });
+      const {response, error} = await res.json();
+      const botMsg = document.createElement('p');
+      botMsg.textContent = error ? 'Error: ' + error : 'Agent: ' + response;
+      chatDiv.appendChild(botMsg);
+      window.scrollTo(0, document.body.scrollHeight);
+      document.getElementById('query').value = '';
+    };
+  </script>
+</body>
+</html>
