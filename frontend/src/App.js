@@ -1,61 +1,103 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import './App.css'
 
 function App() {
+  const [messages, setMessages] = useState([])
   const [query, setQuery] = useState('')
-  const [messages, setMessages] = useState([])  // [{ from: 'you'|'agent', text }]
+  const [typing, setTyping] = useState(false)
+  const chatWindowRef = useRef()
+
+  // Auto‑scroll on new messages
+  useEffect(() => {
+    if (chatWindowRef.current) {
+      chatWindowRef.current.scrollTo({
+        top: chatWindowRef.current.scrollHeight,
+        behavior: 'smooth',
+      })
+    }
+  }, [messages, typing])
 
   const sendMessage = async () => {
     if (!query.trim()) return
-    setMessages(prev => [...prev, { from: 'you', text: query }])
+
+    // Your message
+    const youMsg = {
+      role: 'you',
+      text: query,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    }
+    setMessages(prev => [...prev, youMsg])
     setQuery('')
 
+    // Show typing indicator
+    setTyping(true)
     try {
       const res = await fetch('/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query })
+        body: JSON.stringify({ query }),
       })
-      const { response, error } = await res.json()
+      const data = await res.json()
+      const agentMsg = {
+        role: 'agent',
+        text: data.response,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }
+      setMessages(prev => [...prev, agentMsg])
+    } catch (e) {
       setMessages(prev => [
         ...prev,
-        { from: 'agent', text: error || response }
+        {
+          role: 'agent',
+          text: 'Error contacting server',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
       ])
-    } catch (err) {
-      setMessages(prev => [
-        ...prev,
-        { from: 'agent', text: 'Error contacting server' }
-      ])
+    } finally {
+      setTyping(false)
     }
   }
 
-  const handleKey = e => {
+  const handleKeyPress = e => {
     if (e.key === 'Enter') sendMessage()
   }
 
   return (
     <div className="chat-container">
-      <h1>Chat with Agent</h1>
-      <div className="chat-window">
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            className={m.from === 'you' ? 'message you' : 'message agent'}
-          >
-            <strong>{m.from === 'you' ? 'You' : 'Agent'}:</strong>{' '}
-            {m.text}
+      <header className="chat-header">Google ADK Test 1</header>
+
+      <div className="chat-window" ref={chatWindowRef} role="log" aria-live="polite">
+        {messages.map((msg, idx) => (
+          <div key={idx} className={`message ${msg.role}`}>
+            <div className="avatar">{msg.role === 'you' ? 'Y' : 'A'}</div>
+            <div className="bubble-content">
+              <div className="text">{msg.text}</div>
+              <div className="timestamp">{msg.time}</div>
+            </div>
           </div>
         ))}
+        {typing && (
+          <div className="typing-indicator">
+            <div className="avatar">A</div>
+            <div className="bubble-content">
+              <div className="text">Agent is typing...</div>
+            </div>
+          </div>
+        )}
       </div>
+
       <div className="input-row">
         <input
           type="text"
+          placeholder="Type your message..."
           value={query}
           onChange={e => setQuery(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder="Type a message…"
+          onKeyPress={handleKeyPress}
+          aria-label="Message"
         />
-        <button onClick={sendMessage}>Send</button>
+        <button onClick={sendMessage} disabled={!query.trim()}>
+          Send
+        </button>
       </div>
     </div>
   )

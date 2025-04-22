@@ -1,0 +1,6 @@
+project               = "agent-deployment-test"
+cicd_runner_project_id = "agent-deployment-test"
+host_connection_name   = "github-connection"
+prod_project_id        = "agent-deployment-test"
+repository_name        = "agent-deployment-test"
+staging_project_id     = "agent-deployment-test"
